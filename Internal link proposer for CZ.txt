@@ -1,0 +1,598 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.senuto.com/api/visibility_analysis/reports/positions/getData",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MjYsImV4cCI6MTc0MjA4MDk5MX0.fIwSToQ0rDXQUBSlnFaM8TcVwJtNoLH1_JCPFN7YCwU"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"offset\": 0,\n    \"page\": 1,\n    \"limit\": 1,\n    \"domain\": \"allegro.cz\",\n    \"fetch_mode\": \"subdomain\",\n    \"country_id\": \"50\",\n    \"isDataReadyToLoad\": true,\n    \"days_compare_mode\": \"yesterday\",\n    \"order\": {\n        \"dir\": \"asc\",\n        \"prop\": \"statistics.visibility.yesterday\"\n    },\n    \"date_min\": \"2025-01-01\",\n    \"date_max\": \"2025-02-11\",\n    \"filtering\": [\n        {\n            \"filters\": [\n                {\n                    \"key\": \"keywords\",\n                    \"items\": [\n                        {\n                            \"value\": \"{{ $json.keyword }}\",\n                            \"match\": \"contain\"\n                        }\n                    ],\n                    \"label\": null\n                }\n            ]\n        }\n    ],\n    \"filtering_input\": {}\n}",
+        "options": {}
+      },
+      "id": "59ab693e-f3b3-41c1-bae7-257aa908f7c5",
+      "name": "senuto_get_exact_url_keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('senuto_get_exact_url_keywords').all()[0].json.data;  \n\n// Mapowanie rekordów do par URL-i i słów kluczowych, przycinając URL do '&amp' lub 'srsltid'  \nconst urlKeywordPairs = data.map(record => {  \n    const currentUrl = record.statistics.url.current;  \n    const keyword = record.keyword;  \n\n    // Użycie wyrażenia regularnego do znalezienia pozycji '&amp' lub 'srsltid'  \n    const match = currentUrl.match(/([?&].*?)(?=&amp|srsltid|$)/);  \n\n    // Jeśli jest dopasowanie, zwraca część URL z '?', w przeciwnym razie cały URL  \n    const trimmedUrl = match ? currentUrl.substring(0, match.index + match[1].length) : currentUrl;  \n\n    return { url: trimmedUrl, keyword };  \n});  \n\nconsole.log(urlKeywordPairs);  \nreturn { urlKeywordPairs };  "
+      },
+      "id": "a1d71803-b905-4c1e-a248-2a3c3fb0c5fb",
+      "name": "return_senuto_keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://popart.allegrogroup.com/api/articles/{{ $json.idArticle }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "id": "81595d25-f3ee-48d7-b942-a6f98386bb29",
+      "name": "get_popart_article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        -220
+      ],
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "credentials": {
+        "oAuth2Api": {
+          "id": "UJetjY6ML19W5dLt",
+          "name": "Konto techniczne seo 3"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4",
+          "mode": "list",
+          "cachedResultName": "title_rewrite",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2107960578,
+          "mode": "list",
+          "cachedResultName": "paryAnchor_URL",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4/edit#gid=2107960578"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "urlKeywordPairs": "={{ $json.urlKeywordPairs[0].url }}",
+            "senutoKeyword": "={{ $json.urlKeywordPairs[0].keyword }}",
+            "proposedKW": "={{ $('zapetla kolejny KW').item.json.keyword }}",
+            "idArticle": "={{ $('get_popart_article').item.json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "urlKeywordPairs",
+              "displayName": "urlKeywordPairs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "senutoKeyword",
+              "displayName": "senutoKeyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "proposedKW",
+              "displayName": "proposedKW",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "idArticle",
+              "displayName": "idArticle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tłumaczenie propozycji z AI",
+              "displayName": "tłumaczenie propozycji z AI",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "czy URL to nabidka (oferta)?",
+              "displayName": "czy URL to nabidka (oferta)?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tłumaczenie słowa z senuto",
+              "displayName": "tłumaczenie słowa z senuto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1460,
+        -40
+      ],
+      "id": "6654ae40-8f3e-4c43-b410-202d33cb57a2",
+      "name": "zapis rezulatatu",
+      "credentials": {
+        "googleApi": {
+          "id": "oPWnOyZAID0bz6Sh",
+          "name": "Seo indexer Prod Stable SA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -460,
+        -240
+      ],
+      "id": "d0ffd10c-ec71-45e3-af56-e804369849ab",
+      "name": "zapetla kolejny artykul"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": "={{  $prevNode.name === 'JSlist' }}"
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        -60
+      ],
+      "id": "b106d309-65ad-4fd3-9444-26842ef3c588",
+      "name": "zapetla kolejny KW"
+    },
+    {
+      "parameters": {
+        "content": "SENUTO pobiera URL do słowa kluczowego. USTAWIONY NA contain (zawiera) MOŻNA ZMIENIĆ NA equal (równa się)"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        -180
+      ],
+      "id": "28d76b30-9f57-4c05-83ca-8b0d3c622ea7",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4",
+          "mode": "list",
+          "cachedResultName": "title_rewrite",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 700628361,
+          "mode": "list",
+          "cachedResultName": "INternal Links CZ Input",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4/edit#gid=700628361"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -640,
+        -220
+      ],
+      "id": "dc6b4949-b330-44d4-a14b-2fe9cb3f7c36",
+      "name": "pobor ID artow",
+      "credentials": {
+        "googleApi": {
+          "id": "oPWnOyZAID0bz6Sh",
+          "name": "Seo indexer Prod Stable SA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Adres dla ID artow (zostawic naglowkowy row)\n\nhttps://docs.google.com/spreadsheets/d/1D5J-H-rlnGXXvToHA5iJmztonizz-Y4pbZ_pVUQoEi4/edit?gid=700628361#gid=700628361",
+        "height": 260
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -700,
+        -460
+      ],
+      "id": "e5a2d88b-3d94-40ef-bd46-9a528abff284",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Mapowanie recodów, usuwanie ID czy innych ? z adresow url"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -160
+      ],
+      "id": "5b0aa4e2-eaf0-48ec-aae2-40fe284de3de",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\\n<instruction>From the indicated text, extract words that are potential keywords - that is, they describe some products or product categories.\\nInstructions:\\n- At the beginning, focus on keywords that could be categories of products or shop, and products.\\n- Focus on 10-15 most adequate keywords. Suggest words that could be products or product categories.\\n- Keywords can be singular or plural nouns, they can be conjugated.\\n- Priority is given to products or product categories.\\n- Output the data as a compact JSON object without any line breaks or additional formatting.\\n- Output the extracted keywords as a JSON object directly, without wrapping it in quotes or as a string \\n- Output the extracted keywords as a valid JSON object directly, not as a string or a quoted object \\n- Keywords in output should be in same language as input content</instruction>\\n<examples>\\n    <example>\\n        <input>In selecting clays for modeling, it is important to check its parameters.</input>\\n        <output>{\\\"keyword1\\\": \\\"modeling clay\\\"}</output>\\n    </example>\\n    <example>\\n        <input>\\n            Because it comes in a range of attractive colors, Cernit Number One polymer clay is universally applicable - from school art studios to artists' workshops. Cernit also offers other polymer clays with varying characteristics. Special aesthetic features attract attention especially: Cernit Glamour - a modeling clay with a pearl and metallic effect, perfect for creating jewelry and ornaments that are to have an exceptionally elegant and even luxurious appearance. Cernit Translucent - a semi-transparent plastic mass that becomes almost completely transparent after firing, used to imitate water, glass or gemstones. Cernit Neon Light - polymer clay in bright, neon colors, used in projects requiring vivid, vivid colors. Cernit Nature - polymer clay in colors resembling natural materials such as wood, stone or bone, excellent for creating realistic sculptures.\\n        </input>\\n        <output>{\\\"keyword1\\\": \\\"Cernit polymer clay\\\", \\\"keyword2\\\": \\\"modeling clay\\\", \\\"keyword3\\\": \\\"translucent plastic mass\\\"}</output>\\n    </example>\\n    <example>\\n        <input>\\n            Top 5 shoes for fall 2024! Heavy biker boots or delicate ballerinas? Which shoes are worth reaching for in autumn 2024? Here are five shoe models that will dominate the coming season. Autumn is fast approaching. It's time to put your favorite flip-flops and sandals in the closet and pull out some more covered shoe models. What's new in footwear trends for fall 2024? The answer is: the same as always. Designers have prepared an offer in which there is something for everyone. On the one hand, comfortable ballerinas dominate, and on the other, high platforms are celebrating a triumphant march towards the sky. Below you will find five models of shoes for autumn 2024, which can not go unnoticed. The most fashionable shoes for autumn 2024 - ballerinas. Ballerinas, which you wore throughout the spring and summer seasons, will still be on top. Only their character changes. They stop being cute and girly. The most fashionable ballerinas for fall 2024 are those with a grunge touch. Fashion house Chloé, where Chemena Kamali makes her debut as creative director, promotes models decorated with studs and leather straps. Versace covers its ballerinas with tweed fabric, giving them a Victorian mystery. Which option appeals to you more? The most fashionable shoes for fall 2024 - models with wide uppers. Do you associate shoes with wide uppers? If not, you have the best opportunity to gain the missing knowledge.\\n        </input>\\n        <output>{\\\"keyword1\\\": \\\"biker boots\\\", \\\"keyword2\\\": \\\"ballerinas\\\", \\\"keyword3\\\": \\\"flip-flops\\\", \\\"keyword4\\\": \\\"high platform boots\\\", \\\"keyword5\\\": \\\"studded boots\\\", \\\"keyword6\\\": \\\"sandals\\\", \\\"keyword7\\\": \\\"tweed fabric\\\", \\\"keyword8\\\": \\\"boots with a wide upper\\\"}</output>\\n    </example>\\n</examples>\\n\n\nHere is content to analyze: {{ JSON.stringify($json[\"content\"]) }}\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a content editor who gets the task of finding relevant words in an article."
+            }
+          ]
+        }
+      },
+      "id": "5d1296f9-27db-4665-a4a7-60ac4d03db70",
+      "name": "GAIA prompt KWords",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        20,
+        -240
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "frequencyPenalty": 0.1,
+          "presencePenalty": 0.4,
+          "temperature": 0.7,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        40,
+        -40
+      ],
+      "id": "b5e006d1-98a2-4c13-94d2-813b91344b26",
+      "name": "Azure OpenAI Chat Model",
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "FPK9uykn1ctAft24",
+          "name": "Azure Open AI Gaia Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pobranie danych wejściowych z n8n\nconst item = $input.first();\n\n// Sprawdzenie, czy istnieją dane wejściowe\nif (!item || !item.json.text) {\n  throw new Error(\"Brak poprawnych danych wejściowych.\");\n}\n\n// Pobranie zawartości \"text\" do przetworzenia\nconst contentString = item.json.text;\n\nlet keywords;\ntry {\n  keywords = JSON.parse(contentString);\n} catch (error) {\n  throw new Error(\"Nieprawidłowy format JSON: \" + error.message);\n}\n\n// Sprawdzenie, czy parsowany JSON jest obiektem\nif (typeof keywords !== 'object' || keywords === null) {\n  throw new Error(\"Parsowany JSON nie jest poprawnym obiektem.\");\n}\n\n// Konwersja obiektu na tablicę wyników, każdy keyword jako osobny item\nconst keywordItems = Object.entries(keywords).map(([key, value]) => ({\n  json: { key, keyword: value }\n}));\n\n// Zwrócenie wyników do n8n\nreturn keywordItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -200
+      ],
+      "id": "d4fc4f5e-c305-4d8c-a89a-6cf9b5017b81",
+      "name": "JSlist"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "authentication": "serviceAccount",
+        "triggerOn": "specificFile",
+        "fileToWatch": {
+          "__rl": true,
+          "value": "1biE76P0KATDjfWqIdpcGdwQmkxG_e7BqVVYQmEjhDgM",
+          "mode": "list",
+          "cachedResultName": "title_rewrite_start",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1biE76P0KATDjfWqIdpcGdwQmkxG_e7BqVVYQmEjhDgM/edit?usp=drivesdk"
+        }
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        -220
+      ],
+      "id": "8e7b3224-82ec-4a4e-b1f4-076f7967e28e",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleApi": {
+          "id": "oPWnOyZAID0bz6Sh",
+          "name": "Seo indexer Prod Stable SA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6c38ac62-7ede-420c-a651-288fb698a395",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        360,
+        -360
+      ],
+      "id": "a0606a6a-c636-4dc5-be2c-0f2aa98e4ab2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "szymon.mitrega",
+          "mode": "username"
+        },
+        "text": "GAIA nie wygenerowała słów kluczowych",
+        "otherOptions": {
+          "includeLinkToWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        580,
+        -380
+      ],
+      "id": "66950340-e35f-4d22-8599-caf02864d72b",
+      "name": "Slack",
+      "webhookId": "885af574-a7b7-4bf5-ae50-c79407d24593",
+      "credentials": {
+        "slackApi": {
+          "id": "J1A5CjOruaB5lsPS",
+          "name": "Slack Seo Monitor Access Token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "senuto_get_exact_url_keywords": {
+      "main": [
+        [
+          {
+            "node": "return_senuto_keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "return_senuto_keywords": {
+      "main": [
+        [
+          {
+            "node": "zapis rezulatatu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_popart_article": {
+      "main": [
+        [
+          {
+            "node": "GAIA prompt KWords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zapis rezulatatu": {
+      "main": [
+        [
+          {
+            "node": "zapetla kolejny KW",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zapetla kolejny artykul": {
+      "main": [
+        [],
+        [
+          {
+            "node": "get_popart_article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "zapetla kolejny KW": {
+      "main": [
+        [
+          {
+            "node": "zapetla kolejny artykul",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "senuto_get_exact_url_keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "pobor ID artow": {
+      "main": [
+        [
+          {
+            "node": "zapetla kolejny artykul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GAIA prompt KWords": {
+      "main": [
+        [
+          {
+            "node": "JSlist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Azure OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "GAIA prompt KWords",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSlist": {
+      "main": [
+        [
+          {
+            "node": "zapetla kolejny KW",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "pobor ID artow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "933307ddcd9da0d6a702f6e189a40866fa37afea784fc2c693d8965aa10d77e8"
+  }
+}
